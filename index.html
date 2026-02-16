@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Volleyball Training Tracker</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Lucide Icons as SVG components
+        const CheckCircle = () => (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+        );
+
+        const Circle = () => (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" strokeWidth={2} />
+            </svg>
+        );
+
+        const Video = () => (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+        );
+
+        const TrendingUp = () => (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+            </svg>
+        );
+
+        const Calendar = () => (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+        );
+
+        const ChevronRight = () => (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+        );
+
+        const ChevronDown = () => (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+        );
+
+        const WorkoutTracker = () => {
+          const [workouts, setWorkouts] = useState([]);
+          const [completedSets, setCompletedSets] = useState({});
+          const [selectedDay, setSelectedDay] = useState(null);
+          const [expandedExercise, setExpandedExercise] = useState(null);
+          const [progressData, setProgressData] = useState({});
+          const [view, setView] = useState('calendar');
+
+          const exerciseLibrary = {
+            'Box Jumps': {
+              description: 'Jump explosively onto a box or platform, landing softly with bent knees. Step down (don\'t jump down) and repeat.',
+              tips: ['Land with soft knees', 'Full hip extension at top', 'Reset between reps'],
+              videoUrl: 'https://www.youtube.com/watch?v=NBY9-kTuHEk',
+              musclesWorked: ['Quads', 'Glutes', 'Calves']
+            },
+            'Depth Jumps': {
+              description: 'Step off a box, land with both feet, and immediately explode upward into a maximum vertical jump.',
+              tips: ['Minimal ground contact time', 'Explosive rebound', 'Land first jump softly'],
+              videoUrl: 'https://www.youtube.com/watch?v=Jq0f8JKwNnM',
+              musclesWorked: ['Fast-twitch muscles', 'Full leg chain']
+            },
+            'Bulgarian Split Squats': {
+              description: 'Rear foot elevated on bench, front leg performs a single-leg squat. Hold dumbbells for added resistance.',
+              tips: ['Keep torso upright', 'Front knee tracks over toes', 'Full depth'],
+              videoUrl: 'https://www.youtube.com/watch?v=2C-uNgKwPLE',
+              musclesWorked: ['Quads', 'Glutes', 'Hamstrings']
+            },
+            'Broad Jumps': {
+              description: 'Jump forward for maximum distance, swinging arms to generate momentum. Stick the landing.',
+              tips: ['Use arm swing', 'Land balanced', 'Horizontal power focus'],
+              videoUrl: 'https://www.youtube.com/watch?v=LT6ux8r7s5g',
+              musclesWorked: ['Full lower body', 'Hip explosiveness']
+            },
+            'Single-Leg Box Step-Ups': {
+              description: 'Step onto box with one leg, drive through heel to stand fully on box. Step down with control.',
+              tips: ['Don\'t push off back leg', 'Full extension at top', 'Control descent'],
+              videoUrl: 'https://www.youtube.com/watch?v=dQqApCGd5Ss',
+              musclesWorked: ['Quads', 'Glutes', 'Balance']
+            },
+            'Tuck Jumps': {
+              description: 'Jump vertically and pull knees up toward chest. Land softly and immediately repeat.',
+              tips: ['Quick ground contact', 'Pull knees high', 'Stay on balls of feet'],
+              videoUrl: 'https://www.youtube.com/watch?v=RQ-6FhtGBfE',
+              musclesWorked: ['Full leg power', 'Hip flexors', 'Core']
+            },
+            'Dumbbell Bench Press': {
+              description: 'Lie on bench, press dumbbells from chest level to full arm extension. Lower with control.',
+              tips: ['Elbows 45 degrees from body', 'Full range of motion', 'Control the negative'],
+              videoUrl: 'https://www.youtube.com/watch?v=VmB1G1K7v94',
+              musclesWorked: ['Chest', 'Shoulders', 'Triceps']
+            },
+            'Pull-Ups': {
+              description: 'Hang from bar with overhand grip, pull chin above bar, lower with control. Use band assist if needed.',
+              tips: ['Full dead hang', 'Pull with back not arms', 'Controlled descent'],
+              videoUrl: 'https://www.youtube.com/watch?v=eGo4IYlbE5g',
+              musclesWorked: ['Lats', 'Back', 'Biceps']
+            },
+            'Overhead Press': {
+              description: 'Press dumbbells or barbell from shoulder height to overhead, keeping core tight.',
+              tips: ['Don\'t arch back', 'Full lockout overhead', 'Engage core'],
+              videoUrl: 'https://www.youtube.com/watch?v=2yjwXTZQDDI',
+              musclesWorked: ['Shoulders', 'Triceps', 'Core']
+            },
+            'Dumbbell Rows': {
+              description: 'Bend at hips, row dumbbell to hip, squeeze shoulder blade. Keep back flat.',
+              tips: ['Pull to hip not chest', 'Don\'t rotate torso', 'Squeeze at top'],
+              videoUrl: 'https://www.youtube.com/watch?v=pYcpY20QaE8',
+              musclesWorked: ['Lats', 'Rhomboids', 'Rear delts']
+            },
+            'Medicine Ball Slams': {
+              description: 'Raise ball overhead and slam it to ground with maximum force, simulating a volleyball spike.',
+              tips: ['Full body engagement', 'Explosive downward force', 'Catch on bounce'],
+              videoUrl: 'https://www.youtube.com/watch?v=HMf3re7rMp8',
+              musclesWorked: ['Core', 'Shoulders', 'Full body power']
+            },
+            'Face Pulls': {
+              description: 'Using resistance band, pull handles to face level, squeezing shoulder blades together.',
+              tips: ['Pull to face not chest', 'External rotation at end', 'Slow and controlled'],
+              videoUrl: 'https://www.youtube.com/watch?v=rep-qVOkqgk',
+              musclesWorked: ['Rear delts', 'Upper back', 'Rotator cuff']
+            },
+            'Plank Hold': {
+              description: 'Forearms on ground, body in straight line from head to heels. Hold position.',
+              tips: ['Don\'t let hips sag', 'Engage core tight', 'Neutral spine'],
+              videoUrl: 'https://www.youtube.com/watch?v=ASdvN_XEl_c',
+              musclesWorked: ['Core', 'Abs', 'Stabilizers']
+            },
+            'Suicide Sprints': {
+              description: 'Sprint to each line on court and back (baseline, service, mid, service, baseline).',
+              tips: ['Touch each line', 'Quick direction changes', 'Maximum speed'],
+              videoUrl: 'https://www.youtube.com/watch?v=vWIt10ögLV4',
+              musclesWorked: ['Legs', 'Cardiovascular', 'Agility']
+            },
+            'Lateral Shuffle Drills': {
+              description: 'Stay low in defensive position, shuffle side-to-side touching lines.',
+              tips: ['Stay low', 'Don\'t cross feet', 'Quick feet'],
+              videoUrl: 'https://www.youtube.com/watch?v=qkYffKPUZS0',
+              musclesWorked: ['Hip abductors', 'Quads', 'Lateral stability']
+            },
+            'Pro Agility (5-10-5)': {
+              description: 'Sprint 5 yards right, plant and sprint 10 yards left, plant and sprint 5 yards right.',
+              tips: ['Low body position on turns', 'Explosive out of cuts', 'Touch lines'],
+              videoUrl: 'https://www.youtube.com/watch?v=bl69EbJ3wNY',
+              musclesWorked: ['Full body', 'Change of direction']
+            },
+            'Approach Jumps': {
+              description: 'Perform full volleyball approach footwork (left-right-left for righties) and jump to maximum height with arm swing.',
+              tips: ['Fast approach tempo', 'Explosive plant', 'Full arm swing'],
+              videoUrl: 'https://www.youtube.com/watch?v=0vLc4LM8kBM',
+              musclesWorked: ['Full body coordination', 'Jumping power']
+            },
+            'T-Drill': {
+              description: 'Sprint forward to cone, shuffle left, shuffle right, shuffle back to middle, backpedal to start.',
+              tips: ['Low position for shuffles', 'Quick transitions', 'Touch cones'],
+              videoUrl: 'https://www.youtube.com/watch?v=T6FNfX63BTw',
+              musclesWorked: ['Multi-directional speed', 'Agility']
+            },
+            'Court Sprints': {
+              description: 'Sprint from sideline to sideline at maximum speed. 30 seconds work, 30 seconds rest.',
+              tips: ['Maximum effort', 'Quick turnarounds', 'Maintain speed'],
+              videoUrl: 'https://www.youtube.com/watch?v=vWIt10ogLV4',
+              musclesWorked: ['Legs', 'Cardiovascular endurance']
+            },
+            'Back Squats': {
+              description: 'Bar on upper back, squat down until thighs parallel or below, drive back up through heels.',
+              tips: ['Chest up', 'Knees out', 'Full depth', 'Drive through heels'],
+              videoUrl: 'https://www.youtube.com/watch?v=ultWZbUMPL8',
+              musclesWorked: ['Quads', 'Glutes', 'Core']
+            },
+            'Romanian Deadlifts': {
+              description: 'Hinge at hips with slight knee bend, lower weight down legs, feel hamstring stretch. Drive hips forward to return.',
+              tips: ['Flat back', 'Push hips back', 'Feel in hamstrings'],
+              videoUrl: 'https://www.youtube.com/watch?v=JCXUYuzwNrM',
+              musclesWorked: ['Hamstrings', 'Glutes', 'Lower back']
+            },
+            'Weighted Jump Squats': {
+              description: 'Hold light dumbbells, squat down and explode up into a jump. Land softly.',
+              tips: ['Explosive upward drive', 'Soft landing', 'Full squat depth'],
+              videoUrl: 'https://www.youtube.com/watch?v=Azegwklxe3s',
+              musclesWorked: ['Quads', 'Glutes', 'Explosive power']
+            },
+            'Walking Lunges': {
+              description: 'Step forward into lunge, back knee nearly touches ground, drive up and step into next lunge.',
+              tips: ['Long stride', 'Upright torso', 'Back knee touches lightly'],
+              videoUrl: 'https://www.youtube.com/watch?v=L8fvypPrzzs',
+              musclesWorked: ['Quads', 'Glutes', 'Balance']
+            },
+            'Calf Raises': {
+              description: 'Stand on edge of step, rise up onto toes, lower heels below step level.',
+              tips: ['Full range of motion', 'Slow and controlled', 'Pause at top'],
+              videoUrl: 'https://www.youtube.com/watch?v=gwLzBJYoWlI',
+              musclesWorked: ['Calves', 'Ankle stability']
+            },
+            'Medicine Ball Chest Pass': {
+              description: 'Hold ball at chest, explosively throw it forward (to wall or partner), catch and repeat.',
+              tips: ['Explosive push', 'Follow through', 'Quick catch and reset'],
+              videoUrl: 'https://www.youtube.com/watch?v=pXuJRP1GZKE',
+              musclesWorked: ['Chest', 'Shoulders', 'Core']
+            },
+            'Push-Ups (Variations)': {
+              description: 'Perform regular, wide, and diamond push-ups. Body straight, lower chest to ground, push back up.',
+              tips: ['Core engaged', 'Full range', 'Don\'t sag hips'],
+              videoUrl: 'https://www.youtube.com/watch?v=IODxDxX7oi4',
+              musclesWorked: ['Chest', 'Shoulders', 'Triceps', 'Core']
+            },
+            'Dumbbell Shoulder Press': {
+              description: 'Seated or standing, press dumbbells from shoulder height to overhead.',
+              tips: ['Don\'t lean back', 'Press straight up', 'Control down'],
+              videoUrl: 'https://www.youtube.com/watch?v=qEwKCR5JCog',
+              musclesWorked: ['Shoulders', 'Triceps']
+            },
+            'Band Woodchops': {
+              description: 'Attach band high, rotate torso pulling band down and across body (simulates hitting motion).',
+              tips: ['Rotate from core', 'Keep arms extended', 'Explosive movement'],
+              videoUrl: 'https://www.youtube.com/watch?v=pAplQXk3dkU',
+              musclesWorked: ['Core rotation', 'Obliques', 'Shoulders']
+            },
+            'Inverted Rows': {
+              description: 'Under bar or TRX, pull chest to bar while keeping body straight.',
+              tips: ['Body stays straight', 'Pull shoulder blades together', 'Full range'],
+              videoUrl: 'https://www.youtube.com/watch?v=hXTc1mDnZCw',
+              musclesWorked: ['Back', 'Biceps', 'Core']
+            },
+            'Band Hitting Motion': {
+              description: 'Band attached behind you, perform full volleyball hitting arm motion with resistance.',
+              tips: ['Full arm swing', 'Explosive motion', 'Proper hitting form'],
+              videoUrl: 'https://www.youtube.com/watch?v=kQr8KIc3WYs',
+              musclesWorked: ['Shoulders', 'Core', 'Hitting mechanics']
+            },
+            'Burpees': {
+              description: 'Drop to push-up position, do push-up, jump feet to hands, jump up with hands overhead.',
+              tips: ['Smooth transitions', 'Full push-up', 'Explosive jump'],
+              videoUrl: 'https://www.youtube.com/watch?v=TU8QYVW0gDU',
+              musclesWorked: ['Full body', 'Cardiovascular']
+            },
+            'Medicine Ball Throws': {
+              description: 'Overhead throw, chest pass, or slam variations with medicine ball.',
+              tips: ['Explosive power', 'Full body engagement', 'Quick resets'],
+              videoUrl: 'https://www.youtube.com/watch?v=pXuJRP1GZKE',
+              musclesWorked: ['Core', 'Shoulders', 'Power']
+            }
+          };
+
+          const weekProgram = {
+            monday: {
+              name: 'Lower Body Power + Plyometrics',
+              focus: 'Explosive jumping power',
+              exercises: [
+                { name: 'Box Jumps', sets: 4, reps: 6, weight: 'Bodyweight', rest: 90 },
+                { name: 'Depth Jumps', sets: 3, reps: 5, weight: 'Bodyweight', rest: 120 },
+                { name: 'Bulgarian Split Squats', sets: 4, reps: '8 each', weight: '15-25 lbs each', rest: 60 },
+                { name: 'Broad Jumps', sets: 4, reps: 5, weight: 'Bodyweight', rest: 90 },
+                { name: 'Single-Leg Box Step-Ups', sets: 3, reps: '10 each', weight: '10-20 lbs each', rest: 60 },
+                { name: 'Tuck Jumps', sets: 3, reps: 8, weight: 'Bodyweight', rest: 90 }
+              ]
+            },
+            tuesday: {
+              name: 'Upper Body Strength + Core',
+              focus: 'Hitting power and shoulder stability',
+              exercises: [
+                { name: 'Dumbbell Bench Press', sets: 4, reps: 8, weight: '25-40 lbs each', rest: 90 },
+                { name: 'Pull-Ups', sets: 4, reps: '8-10', weight: 'Bodyweight/Assisted', rest: 90 },
+                { name: 'Overhead Press', sets: 4, reps: 8, weight: '15-30 lbs each', rest: 90 },
+                { name: 'Dumbbell Rows', sets: 4, reps: '10 each', weight: '20-35 lbs', rest: 60 },
+                { name: 'Medicine Ball Slams', sets: 3, reps: 12, weight: '10-15 lb ball', rest: 60 },
+                { name: 'Face Pulls', sets: 3, reps: 15, weight: 'Band', rest: 45 },
+                { name: 'Plank Hold', sets: 3, reps: '45 sec', weight: 'Bodyweight', rest: 60 }
+              ]
+            },
+            wednesday: {
+              name: 'Speed & Agility + Conditioning',
+              focus: 'Court movement and reaction time',
+              exercises: [
+                { name: 'Suicide Sprints', sets: 5, reps: 1, weight: 'Bodyweight', rest: 90 },
+                { name: 'Lateral Shuffle Drills', sets: 4, reps: '30 sec', weight: 'Bodyweight', rest: 60 },
+                { name: 'Pro Agility (5-10-5)', sets: 6, reps: 1, weight: 'Bodyweight', rest: 90 },
+                { name: 'Approach Jumps', sets: 4, reps: 5, weight: 'Bodyweight', rest: 120 },
+                { name: 'T-Drill', sets: 4, reps: 1, weight: 'Bodyweight', rest: 90 },
+                { name: 'Court Sprints', sets: 8, reps: 1, weight: 'Bodyweight', rest: 30 }
+              ]
+            },
+            thursday: {
+              name: 'Lower Body Strength + Vertical',
+              focus: 'Maximum power development',
+              exercises: [
+                { name: 'Back Squats', sets: 4, reps: 6, weight: 'Heavy', rest: 120 },
+                { name: 'Romanian Deadlifts', sets: 4, reps: 8, weight: '40-80 lbs', rest: 90 },
+                { name: 'Approach Jumps', sets: 5, reps: 3, weight: 'Max effort', rest: 180 },
+                { name: 'Weighted Jump Squats', sets: 4, reps: 6, weight: '10-15 lbs each', rest: 90 },
+                { name: 'Walking Lunges', sets: 3, reps: '12 each', weight: '15-25 lbs each', rest: 60 },
+                { name: 'Calf Raises', sets: 4, reps: 15, weight: '20-40 lbs each', rest: 45 }
+              ]
+            },
+            friday: {
+              name: 'Upper Body Power + Shoulder Health',
+              focus: 'Hitting power and injury prevention',
+              exercises: [
+                { name: 'Medicine Ball Chest Pass', sets: 4, reps: 10, weight: '8-12 lb ball', rest: 60 },
+                { name: 'Push-Ups (Variations)', sets: 3, reps: 12, weight: 'Bodyweight', rest: 60 },
+                { name: 'Dumbbell Shoulder Press', sets: 4, reps: 10, weight: '15-25 lbs each', rest: 90 },
+                { name: 'Band Woodchops', sets: 3, reps: '12 each', weight: 'Band', rest: 45 },
+                { name: 'Inverted Rows', sets: 4, reps: 10, weight: 'Bodyweight', rest: 60 },
+                { name: 'Band Hitting Motion', sets: 3, reps: '15 each', weight: 'Band', rest: 45 }
+              ]
+            },
+            saturday: {
+              name: 'Full Body Conditioning',
+              focus: 'Game-like movements and endurance',
+              exercises: [
+                { name: 'Approach Jumps', sets: 4, reps: 8, weight: 'Bodyweight', rest: 90 },
+                { name: 'Lateral Shuffle Drills', sets: 4, reps: '4 baseline-baseline', weight: 'Bodyweight', rest: 60 },
+                { name: 'Burpees', sets: 4, reps: 10, weight: 'Bodyweight', rest: 90 },
+                { name: 'Box Jumps', sets: 4, reps: 10, weight: 'Bodyweight', rest: 90 },
+                { name: 'Medicine Ball Throws', sets: 4, reps: 12, weight: '10 lb ball', rest: 60 },
+                { name: 'Tuck Jumps', sets: 4, reps: 10, weight: 'Bodyweight', rest: 90 }
+              ]
+            }
+          };
+
+          useEffect(() => {
+            loadData();
+          }, []);
+
+          const loadData = async () => {
+            try {
+              const saved = await window.storage.get('vb-workouts');
+              if (saved) {
+                const data = JSON.parse(saved.value);
+                setWorkouts(data.workouts || []);
+                setCompletedSets(data.completedSets || {});
+                setProgressData(data.progressData || {});
+              }
+            } catch (e) {
+              console.log('No saved data');
+            }
+          };
+
+          const saveData = async (updates = {}) => {
+            const data = {
+              workouts: updates.workouts !== undefined ? updates.workouts : workouts,
+              completedSets: updates.completedSets !== undefined ? updates.completedSets : completedSets,
+              progressData: updates.progressData !== undefined ? updates.progressData : progressData
+            };
+            try {
+              await window.storage.set('vb-workouts', JSON.stringify(data));
+            } catch (e) {
+              console.error('Save failed:', e);
+            }
+          };
+
+          const toggleSet = (day, exerciseIndex, setIndex) => {
+            const key = `${day}-${exerciseIndex}-${setIndex}`;
+            const newCompleted = { ...completedSets, [key]: !completedSets[key] };
+            setCompletedSets(newCompleted);
+            saveData({ completedSets: newCompleted });
+          };
+
+          const logWorkout = (day) => {
+            const today = new Date().toISOString().split('T')[0];
+            const workout = {
+              id: Date.now(),
+              day,
+              date: today,
+              completed: true
+            };
+            const newWorkouts = [...workouts, workout];
+            setWorkouts(newWorkouts);
+            
+            const newCompleted = { ...completedSets };
+            Object.keys(newCompleted).forEach(key => {
+              if (key.startsWith(day)) delete newCompleted[key];
+            });
+            setCompletedSets(newCompleted);
+            
+            saveData({ workouts: newWorkouts, completedSets: newCompleted });
+            setView('calendar');
+          };
+
+          const logProgress = (metric, value) => {
+            const today = new Date().toISOString().split('T')[0];
+            const newProgress = {
+              ...progressData,
+              [metric]: [...(progressData[metric] || []), { date: today, value: parseFloat(value) }]
+            };
+            setProgressData(newProgress);
+            saveData({ progressData: newProgress });
+          };
+
+          const getWeekStats = () => {
+            const today = new Date();
+            const weekStart = new Date(today);
+            weekStart.setDate(today.getDate() - today.getDay());
+            const weekStartStr = weekStart.toISOString().split('T')[0];
+            
+            const thisWeek = workouts.filter(w => w.date >= weekStartStr);
+            return {
+              completed: thisWeek.length,
+              target: 6
+            };
+          };
+
+          const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+
+          if (view === 'calendar') {
+            const weekStats = getWeekStats();
+            
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 p-6">
+                <div className="max-w-6xl mx-auto">
+                  <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                    <h1 className="text-3xl font-bold text-gray-800 mb-2">🏐 Volleyball Training Program</h1>
+                    <p className="text-gray-600 mb-4">Outside Hitter - 6 Day Split</p>
+                    
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                        <div className="text-sm text-blue-700">This Week</div>
+                        <div className="text-2xl font-bold text-blue-900">{weekStats.completed}/6</div>
+                        <div className="text-xs text-blue-600">Workouts Completed</div>
+                      </div>
+                      <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                        <div className="text-sm text-green-700">Total Sessions</div>
+                        <div className="text-2xl font-bold text-green-900">{workouts.length}</div>
+                        <div className="text-xs text-green-600">All Time</div>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setView('calendar')}
+                        className="px-4 py-2 bg-orange-600 text-white rounded-lg font-semibold"
+                      >
+                        Workouts
+                      </button>
+                      <button
+                        onClick={() => setView('progress')}
+                        className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 flex items-center gap-1"
+                      >
+                        <TrendingUp className="w-4 h-4" />
+                        Progress
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {days.map(day => {
+                      const program = weekProgram[day];
+                      const today = new Date().toISOString().split('T')[0];
+                      const completed = workouts.some(w => w.day === day && w.date === today);
+                      
+                      return (
+                        <div key={day} className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition">
+                          <div className="flex items-start justify-between mb-3">
+                            <div>
+                              <h3 className="text-xl font-bold text-gray-800 capitalize">{day}</h3>
+                              <p className="text-sm text-gray-600">{program.name}</p>
+                              <p className="text-xs text-gray-500 mt-1">{program.focus}</p>
+                            </div>
+                            {completed && (
+                              <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-semibold">
+                                ✓ Done
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="text-sm text-gray-600 mb-4">
+                            {program.exercises.length} exercises
+                          </div>
+
+                          <button
+                            onClick={() => { setSelectedDay(day); setView('workout'); }}
+                            className="w-full px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition flex items-center justify-center gap-2"
+                          >
+                            Start Workout <ChevronRight />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h3 className="font-semibold text-blue-900 mb-2">📋 Program Overview:</h3>
+                    <ul className="text-sm text-blue-800 space-y-1">
+                      <li>• <strong>Mon/Thu:</strong> Lower body power & strength (vertical jump focus)</li>
+                      <li>• <strong>Tue/Fri:</strong> Upper body strength & power (hitting power)</li>
+                      <li>• <strong>Wed:</strong> Speed, agility, conditioning</li>
+                      <li>• <strong>Sat:</strong> Full body conditioning & skills</li>
+                      <li>• <strong>Sun:</strong> REST (essential for recovery)</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          if (view === 'workout' && selectedDay) {
+            const program = weekProgram[selectedDay];
+            
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 p-6">
+                <div className="max-w-4xl mx-auto">
+                  <button
+                    onClick={() => setView('calendar')}
+                    className="text-orange-600 hover:text-orange-700 mb-4 flex items-center gap-2"
+                  >
+                    ← Back to Calendar
+                  </button>
+
+                  <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <h1 className="text-3xl font-bold text-gray-800 capitalize">{selectedDay}</h1>
+                        <p className="text-lg text-gray-700 mt-1">{program.name}</p>
+                        <p className="text-sm text-gray-600 mt-1">Focus: {program.focus}</p>
+                      </div>
+                      <button
+                        onClick={() => logWorkout(selectedDay)}
+                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
+                      >
+                        <CheckCircle />
+                        Complete
+                      </button>
+                    </div>
+
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                      <p className="text-sm text-yellow-800">
+                        <strong>💡 Tip:</strong> Check off each set as you complete it. Click exercise names for details and video demos!
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    {program.exercises.map((exercise, exerciseIndex) => {
+                      const exerciseInfo = exerciseLibrary[exercise.name] || {};
+                      const isExpanded = expandedExercise === `${selectedDay}-${exerciseIndex}`;
+                      const setsCompleted = Array.from({ length: exercise.sets }, (_, i) => 
+                        completedSets[`${selectedDay}-${exerciseIndex}-${i}`]
+                      ).filter(Boolean).length;
+
+                      return (
+                        <div key={exerciseIndex} className="bg-white rounded-lg shadow-lg p-6">
+                          <div className="flex justify-between items-start mb-3">
+                            <div className="flex-1">
+                              <button
+                                onClick={() => setExpandedExercise(isExpanded ? null : `${selectedDay}-${exerciseIndex}`)}
+                                className="text-left w-full flex items-center justify-between group"
+                              >
+                                <div>
+                                  <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2 group-hover:text-orange-600">
+                                    {exercise.name}
+                                    {isExpanded ? <ChevronDown /> : <ChevronRight />}
+                                  </h3>
+                                  <p className="text-sm text-gray-600 mt-1">
+                                    {exercise.sets} sets × {exercise.reps} reps | {exercise.weight} | Rest: {exercise.rest}s
+                                  </p>
+                                </div>
+                              </button>
+                              <div className="mt-2">
+                                <div className="flex items-center gap-2">
+                                  <div className="flex-1 bg-gray-200 rounded-full h-2">
+                                    <div 
+                                      className="bg-green-500 h-2 rounded-full transition-all" 
+                                      style={{ width: `${(setsCompleted / exercise.sets) * 100}%` }}
+                                    />
+                                  </div>
+                                  <span className="text-sm text-gray-600">{setsCompleted}/{exercise.sets}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {isExpanded && exerciseInfo.description && (
+                            <div className="mt-4 pt-4 border-t border-gray-200">
+                              <div className="bg-blue-50 rounded-lg p-4 mb-3">
+                                <p className="text-gray-800 mb-2">{exerciseInfo.description}</p>
+                                {exerciseInfo.tips && (
+                                  <div className="mt-3">
+                                    <p className="font-semibold text-gray-700 text-sm mb-1">Form Tips:</p>
+                                    <ul className="text-sm text-gray-700 space-y-1">
+                                      {exerciseInfo.tips.map((tip, i) => (
+                                        <li key={i}>• {tip}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                                {exerciseInfo.musclesWorked && (
+                                  <div className="mt-2">
+                                    <p className="font-semibold text-gray-700 text-sm">
+                                      Muscles: {exerciseInfo.musclesWorked.join(', ')}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                              
+                              {exerciseInfo.videoUrl && (
+                                
+                                  href={exerciseInfo.videoUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                                >
+                                  <Video />
+                                  Watch Demo Video
+                                </a>
+                              )}
+                            </div>
+                          )}
+
+                          <div className="flex flex-wrap gap-2 mt-4">
+                            {Array.from({ length: exercise.sets }, (_, setIndex) => {
+                              const isComplete = completedSets[`${selectedDay}-${exerciseIndex}-${setIndex}`];
+                              return (
+                                <button
+                                  key={setIndex}
+                                  onClick={() => toggleSet(selectedDay, exerciseIndex, setIndex)}
+                                  className={`px-4 py-2 rounded-lg font-semibold transition ${
+                                    isComplete
+                                      ? 'bg-green-500 text-white'
+                                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                  }`}
+                                >
+                                  {isComplete ? <CheckCircle /> : <Circle />}
+                                  {' '}Set {setIndex + 1}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="mt-6 bg-white rounded-lg shadow-lg p-6">
+                    <button
+                      onClick={() => logWorkout(selectedDay)}
+                      className="w-full px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-bold text-lg flex items-center justify-center gap-2"
+                    >
+                      <CheckCircle />
+                      Mark Workout as Complete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          if (view === 'progress') {
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 p-6">
+                <div className="max-w-4xl mx-auto">
+                  <button
+                    onClick={() => setView('calendar')}
+                    className="text-orange-600 hover:text-orange-700 mb-4 flex items-center gap-2"
+                  >
+                    ← Back to Calendar
+                  </button>
+
+                  <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                    <h1 className="text-3xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                      <TrendingUp className="text-orange-600" />
+                      Progress Tracking
+                    </h1>
+                    <p className="text-gray-600">Track your improvements over time</p>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div className="bg-white rounded-lg shadow-lg p-6">
+                      <h2 className="text-xl font-bold text-gray-800 mb-4">Log Your Metrics</h2>
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Vertical Jump (inches)</label>
+                          <input
+                            type="number"
+                            id="verticalInput"
+                            placeholder="e.g., 28"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                          />
+                          <button
+                            onClick={() => {
+                              const val = document.getElementById('verticalInput').value;
+                              if (val) {
+                                logProgress('vertical', val);
+                                document.getElementById('verticalInput').value = '';
+                                alert('Vertical jump logged!');
+                              }
+                            }}
+                            className="mt-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 w-full"
+                          >
+                            Log Vertical
+                          </button>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Body Weight (lbs)</label>
+                          <input
+                            type="number"
+                            id="weightInput"
+                            placeholder="e.g., 150"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                          />
+                          <button
+                            onClick={() => {
+                              const val = document.getElementById('weightInput').value;
+                              if (val) {
+                                logProgress('weight', val);
+                                document.getElementById('weightInput').value = '';
+                                alert('Weight logged!');
+                              }
+                            }}
+                            className="mt-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 w-full"
+                          >
+                            Log Weight
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {progressData.vertical && progressData.vertical.length > 0 && (
+                      <div className="bg-white rounded-lg shadow-lg p-6">
+                        <h3 className="text-lg font-bold text-gray-800 mb-4">Vertical Jump Progress</h3>
+                        <div className="space-y-2">
+                          {progressData.vertical.slice(-10).reverse().map((entry, i) => (
+                            <div key={i} className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+                              <span className="text-gray-700">{new Date(entry.date).toLocaleDateString()}</span>
+                              <span className="font-bold text-blue-600 text-lg">{entry.value}"</span>
+                            </div>
+                          ))}
+                        </div>
+                        {progressData.vertical.length > 1 && (
+                          <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-4">
+                            <p className="text-green-800 font-semibold">
+                              Total Gain: +{(
+                                progressData.vertical[progressData.vertical.length - 1].value -
+                                progressData.vertical[0].value
+                              ).toFixed(1)}" since start
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {progressData.weight && progressData.weight.length > 0 && (
+                      <div className="bg-white rounded-lg shadow-lg p-6">
+                        <h3 className="text-lg font-bold text-gray-800 mb-4">Body Weight Tracking</h3>
+                        <div className="space-y-2">
+                          {progressData.weight.slice(-10).reverse().map((entry, i) => (
+                            <div key={i} className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
+                              <span className="text-gray-700">{new Date(entry.date).toLocaleDateString()}</span>
+                              <span className="font-bold text-purple-600 text-lg">{entry.value} lbs</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="bg-white rounded-lg shadow-lg p-6">
+                      <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <Calendar />
+                        Recent Workouts
+                      </h3>
+                      {workouts.length === 0 ? (
+                        <p className="text-gray-500 text-center py-8">No workouts logged yet. Start your first session!</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {workouts.slice(-15).reverse().map((workout, i) => (
+                            <div key={i} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                              <div>
+                                <span className="font-semibold text-gray-800 capitalize">{workout.day}</span>
+                                <span className="text-gray-600 text-sm ml-2">- {weekProgram[workout.day].name}</span>
+                              </div>
+                              <span className="text-gray-600 text-sm">{new Date(workout.date).toLocaleDateString()}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          return null;
+        };
+
+        ReactDOM.render(<WorkoutTracker />, document.getElementById('root'));
+    </script>
+</body>
+</html>
